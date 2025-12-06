@@ -24,7 +24,7 @@ int curr = -1;
 //function yang diexecute oleh child process
 void run_child(int id){
     while(1){ //infinite loop
-        printf("Ini proses %d dengan pid %d", id, getpid());
+        printf("Ini proses %d dengan pid %d\n", id, getpid());
         fflush(stdout); //mengeluarkan hasil printf langsung ke layar tanpa lewat buffer
 
         //busy wait, semacam sleep, tetapi CPU tetap bekerja, jadi bisa simulasi proses preemptive
@@ -35,7 +35,7 @@ void run_child(int id){
 int find_next_process(){
     if (nprocs == 0) return -1; //proses tidak ada
     int start = curr; //dari -1
-    for(int i = 1; i < nprocs; i++){
+    for(int i = 1; i <= nprocs; i++){
         int idx = (start + i) % nprocs; //modulo agar circular (bergantian)
         if(processes[idx].state != TERMINATED){
             return idx; //index proses yang dicari
@@ -44,13 +44,13 @@ int find_next_process(){
     return -1;
 }
 
-void timer(int sig){ //jika function ini dipanggil proses yang lagi running(di sini curr dinamakan jadi prev) akan distop, 
+void signal_stop(int sig){ //jika function ini dipanggil proses yang lagi running(di sini curr dinamakan jadi prev) akan distop, 
 // kemudian akan menjalankan proses berikutnya hasil panggil function find_next_process
     int prev = curr;
     int next = find_next_process(); //cari proses selanjutnya pakai function yang sudah dibuat
     
     if(next == -1){
-        printf("Proses Tidak Diteukan!\n");
+        printf("Proses Tidak Ditemukan!\n");
         exit(0);
     }
 
@@ -95,13 +95,13 @@ int main(int argc, char *argv[]){
         }
         else {
             processes[i].pid = pid;
-            processes[i].pid = NEW;
+            processes[i].state = NEW;
             printf("Created child %d with pid=%d\n", i, pid);
         }
     }
       // Pasang signal handler untuk SIGALRM
     struct sigaction sa;
-    sa.sa_handler = timer;
+    sa.sa_handler = signal_stop;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
     if (sigaction(SIGALRM, &sa, NULL) == -1) {
