@@ -24,20 +24,20 @@ int curr = -1;
 //function yang diexecute oleh child process
 void run_child(int id){
     while(1){ //infinite loop
-        printf("Ini proses dengan pid %d", id, getpid());
+        printf("Ini proses %d dengan pid %d", id, getpid());
         fflush(stdout); //mengeluarkan hasil printf langsung ke layar tanpa lewat buffer
 
         //busy wait, semacam sleep, tetapi CPU tetap bekerja, jadi bisa simulasi proses preemptive
-        for(volatile long i = 0, 1 < 100000000; i++);
+        for(volatile long i = 0; i < 100000000; i++);
     }
 }
 
 int find_next_process(){
     if (nprocs == 0) return -1; //proses tidak ada
-    int start = curr //dari -1
+    int start = curr; //dari -1
     for(int i = 1; i < nprocs; i++){
         int idx = (start + i) % nprocs; //modulo agar circular (bergantian)
-        if(processes[idx] != TERMINATED){
+        if(processes[idx].state != TERMINATED){
             return idx; //index proses yang dicari
         }
     }
@@ -51,17 +51,17 @@ void timer(int sig){ //jika function ini dipanggil proses yang lagi running(di s
     
     if(next == -1){
         printf("Proses Tidak Diteukan!\n");
-        exit(0)
+        exit(0);
     }
 
     if(prev != -1 && processes[prev].state != TERMINATED){
         kill(processes[prev].pid, SIGSTOP);
         processes[prev].state = STOPPED; //update state proses jadi stopped
-        print("Proses pid %d, stopped\n", processes[prev].pid);
+        printf("Proses pid %d, stopped\n", processes[prev].pid);
     }
 
     curr = next; //posisi current dipindahkan ke proses berikutnya
-    if(processes[curr].state == NEW || processes[current].state == STOPPED){
+    if(processes[curr].state == NEW || processes[curr].state == STOPPED){
         kill(processes[curr].pid, SIGCONT); //lanjutkan/jalankan proses baru
         processes[curr].state = RUNNING;
         printf("Proses Pid %d, sedang dijalankan", processes[curr].pid);
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]){
 
     nprocs = atoi(argv[1]); //mengubah input argumen menjadi integer (./timeshare 4) 4 diubah jadi integer sebagai jumlah process
     if(nprocs <= 0 || nprocs > MAX_PROCS){
-        fprint(stderr, "Proses harus berjumlah antara 1 sampai %d\n", MAX_PROCS);
+        fprintf(stderr, "Proses harus berjumlah antara 1 sampai %d\n", MAX_PROCS);
         exit(1);
     }
 
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]){
     }
       // Pasang signal handler untuk SIGALRM
     struct sigaction sa;
-    sa.sa_handler = timer_handler;
+    sa.sa_handler = timer;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
     if (sigaction(SIGALRM, &sa, NULL) == -1) {
@@ -124,9 +124,9 @@ int main(int argc, char *argv[]){
     printf("Starting scheduler...\n");
 
     // Mulai dari proses pertama
-    current = 0;
-    kill(processes[current].pid, SIGCONT);
-    processes[current].state = RUNNING;
+    curr = 0;
+    kill(processes[curr].pid, SIGCONT);
+    processes[curr].state = RUNNING;
 
     // Parent hanya menunggu sinyal dan child exit
     while (1) {
